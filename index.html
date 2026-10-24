@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Golf Knight</title>
+  <meta name="description" content="Golf Knight: un isekai de golf. Te invocan a otro mundo con tus palos de golf, y la horda se frena a golpes perfectos. Demo gratis en el navegador.">
+  <meta name="theme-color" content="#0b1626">
+  <link rel="icon" href="icono.png">
+  <link rel="canonical" href="https://golf-knight.com/">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://golf-knight.com/">
+  <meta property="og:title" content="Golf Knight">
+  <meta property="og:description" content="An isekai golf roguelite: summoned to a fantasy world with only your golf clubs, stop the horde with perfect swings.">
+  <meta property="og:image" content="https://golf-knight.com/img/compartir.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <!--
+    La página del juego en golf-knight.com (20/10, Leandro: «una landing mucho más linda, con videos y las
+    imágenes que tenemos para itch, con un botón de play que te lleve hoy a itch, pero después te lleva a la
+    página donde elegís dónde jugar»). Adónde va «Jugar»: PLAY_URL, abajo.
+
+    El material: img/ (las capturas de itch sin el margen, por idioma, y la portada en 16:9:
+    `node tools/promo.mjs crudas portada-web`), media/ (un pedazo de la pelea con la hidra, sin el HUD) y
+    videos/ (las partidas enteras de tools/videos.mjs, que el deploy conserva de la gh-pages publicada).
+
+    También quedan acá Abe (abe/p<N>/, ver NET_PROTOCOL en src/net/snapshot.ts) y, con contraseña, la
+    completa para los que ayudan a probarlo. La arma tools/deploy.mjs: copia esta carpeta y le suma Abe y la
+    completa.
+  -->
+  <script>
+    // los enlaces viejos para ser Abe venían a esta dirección: van al Abe de esa época (el protocolo 1)
+    if (/[?&](mirar|transmitir)=/.test(location.search)) location.replace(`abe/p1/${location.search}${location.hash}`);
+  </script>
+  <style>
+    :root {
+      --bg: #0b1626; --bg-2: #0f1d31; --panel: #13233a; --panel-2: #182c47; --text: #f3ead6; --muted: #b9c2cf;
+      --gold: #ffd66b; --gold-light: #ffe9a0; --gold-dark: #c98a1e; --brown: #6b3f0c; --ink: #3b1f05;
+      --line: rgba(255, 214, 107, 0.22); --bad: #ff8a7a; --green: #6fcf6b;
+      --serif: Georgia, 'Times New Roman', serif;
+      --sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    html, body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.6 var(--sans); }
+    img, video { display: block; max-width: 100%; }
+    a { color: var(--gold); }
+    h1, h2, h3 { font-family: var(--serif); font-weight: 700; line-height: 1.15; margin: 0; }
+    p { margin: 0 0 14px; }
+    .wrap { width: min(1120px, 100% - 32px); margin: 0 auto; }
+
+    /* la barra de arriba: transparente sobre la portada, sólida al bajar */
+    .bar { position: fixed; inset: 0 0 auto; z-index: 20; transition: background 0.25s, box-shadow 0.25s; }
+    .bar .wrap { display: flex; align-items: center; gap: 18px; height: 60px; }
+    .bar.solid { background: rgba(11, 22, 38, 0.92); backdrop-filter: blur(8px); box-shadow: 0 1px 0 var(--line); }
+    .brand { display: flex; align-items: center; gap: 10px; color: var(--gold); text-decoration: none; font: 700 19px var(--serif); letter-spacing: 1px; opacity: 0; transition: opacity 0.25s; }
+    .bar.solid .brand { opacity: 1; }
+    .brand img { width: 32px; height: 32px; }
+    .bar nav { display: flex; gap: 18px; margin-left: auto; }
+    .bar nav a { color: var(--text); text-decoration: none; font-size: 15px; opacity: 0.85; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6); }
+    .bar nav a:hover { opacity: 1; color: var(--gold); }
+    /* el menú de idioma (idioma.js): el globo con el de ahora, y la lista abajo */
+    .lang { position: relative; }
+    .lang-toggle { display: flex; align-items: center; gap: 6px; background: none; border: 1px solid transparent; color: var(--text); font: 600 14px var(--sans); cursor: pointer; padding: 6px 9px; border-radius: 8px; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6); opacity: 0.9; }
+    .lang-toggle:hover, .lang-toggle[aria-expanded="true"] { color: var(--gold); border-color: var(--line); opacity: 1; }
+    .lang-toggle svg { width: 16px; height: 16px; }
+    .lang-list { position: absolute; right: 0; top: calc(100% + 6px); margin: 0; padding: 6px; list-style: none; min-width: 190px; background: rgba(11, 22, 38, 0.97); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); }
+    .lang-list li { padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 15px; color: var(--text); outline: none; }
+    .lang-list li:hover, .lang-list li:focus { background: rgba(255, 214, 107, 0.12); }
+    .lang-list li[aria-selected="true"] { color: var(--gold); }
+    .bar .btn { padding: 8px 18px; font-size: 16px; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+    .bar.solid .btn { opacity: 1; pointer-events: auto; }
+
+    /* el botón dorado, como el de la entrada del juego */
+    .btn { display: inline-flex; align-items: center; gap: 10px; padding: 16px 38px; border-radius: 12px; border: 0; cursor: pointer;
+      background: linear-gradient(180deg, var(--gold-light), var(--gold) 55%, var(--gold-dark)); color: var(--ink);
+      font: 700 24px var(--serif); text-decoration: none; letter-spacing: 0.5px;
+      box-shadow: 0 4px 0 var(--brown), 0 10px 26px rgba(0, 0, 0, 0.4); transition: transform 0.12s, filter 0.12s, box-shadow 0.12s; }
+    .btn:hover { filter: brightness(1.07); transform: translateY(-1px); }
+    .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--brown), 0 6px 16px rgba(0, 0, 0, 0.4); }
+    .btn svg { width: 0.8em; height: 0.8em; }
+
+    /* la portada: el caballero en lo alto del swing, el título sobre el cielo */
+    .hero { position: relative; min-height: 100vh; min-height: 100svh; display: flex; flex-direction: column; overflow: hidden; }
+    .hero picture, .hero picture img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 40% 60%; }
+    .hero::after { content: ''; position: absolute; inset: 0; pointer-events: none;
+      background: linear-gradient(180deg, rgba(11, 22, 38, 0.72) 0%, rgba(11, 22, 38, 0.25) 30%, transparent 46%, transparent 72%, rgba(11, 22, 38, 0.6) 88%, var(--bg) 100%); }
+    .hero .content { position: relative; z-index: 1; text-align: center; padding: 96px 16px 0; }
+    .title { font: 700 clamp(52px, 10vw, 128px)/1 var(--serif); letter-spacing: 0.06em; margin: 0;
+      background: linear-gradient(180deg, var(--gold-light) 10%, #ffc94d 55%, var(--gold-dark) 95%); -webkit-background-clip: text; background-clip: text; color: transparent;
+      filter: drop-shadow(0 0.05em 0 #7a4b12) drop-shadow(0 0.08em 0.18em rgba(0, 0, 0, 0.55)); }
+    .tag { font: italic 600 clamp(20px, 2.6vw, 32px) var(--serif); color: #fff4d6; margin: 10px 0 0; text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8); }
+    /* el chino, el japonés y el coreano no tienen cursiva: el navegador la inventa torciendo las letras */
+    :is(:lang(zh), :lang(ja), :lang(ko)) .tag { font-style: normal; }
+    .hero .cta { position: relative; z-index: 1; margin-top: auto; padding: 0 16px 44px; text-align: center; }
+    .hero .cta small { display: block; margin-top: 16px; color: #fff; font-size: 15px; text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9); }
+    .scroll { display: inline-block; margin-top: 18px; color: #fff; opacity: 0.75; text-decoration: none; font-size: 22px; animation: bob 2.2s ease-in-out infinite; }
+    @keyframes bob { 50% { transform: translateY(6px); } }
+
+    section { padding: 88px 0; }
+    .eyebrow { display: block; color: var(--gold); font: 600 13px var(--sans); letter-spacing: 0.16em; text-transform: uppercase; margin-bottom: 12px; }
+    h2 { font-size: clamp(30px, 4.4vw, 46px); color: #fff4d6; margin-bottom: 18px; }
+    h3 { font-size: 26px; color: #fff4d6; margin-bottom: 12px; }
+    .lead { font-size: 19px; color: var(--muted); max-width: 640px; }
+    .shot { border-radius: 14px; overflow: hidden; background: var(--panel); box-shadow: 0 0 0 1px var(--line), 0 18px 40px rgba(0, 0, 0, 0.45); }
+    .shot img, .shot video { width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; }
+    button.shot { padding: 0; border: 0; cursor: zoom-in; display: block; width: 100%; }
+
+    /* la historia */
+    .story { background: radial-gradient(ellipse at 80% 0%, #1b2f52 0%, transparent 60%), var(--bg); }
+    .story .grid { display: grid; grid-template-columns: 1fr 1.1fr; gap: 56px; align-items: center; }
+    .story p { font-size: 19px; }
+    .story .punch { font: italic 600 22px var(--serif); color: var(--gold); }
+    .story .pics { display: grid; gap: 18px; }
+    .story .pics .shot:nth-child(2) { margin-left: 12%; }
+
+    /* el video */
+    .action { background: linear-gradient(180deg, var(--bg) 0%, #0e2a1f 100%); }
+    .action .head { max-width: 760px; margin: 0 auto 36px; text-align: center; }
+    .action .head .lead { margin: 0 auto; }
+    .loop { position: relative; }
+    .loop video { aspect-ratio: 1120 / 514; }
+    .loop .badge { position: absolute; left: 14px; top: 14px; background: rgba(11, 22, 38, 0.8); color: var(--gold); font: 600 13px var(--sans); padding: 5px 10px; border-radius: 999px; }
+    .clubs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 30px; }
+    .club { background: rgba(19, 35, 58, 0.75); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+    .club b { display: block; font: 700 19px var(--serif); color: var(--gold); }
+    .club span { color: var(--muted); font-size: 15px; }
+
+    /* lo que trae */
+    .features .row { display: grid; grid-template-columns: 1.25fr 1fr; gap: 52px; align-items: center; margin-top: 72px; }
+    .features .row:nth-of-type(even) .shot { order: 2; }
+    .features .row p { color: var(--muted); }
+    .features ul { margin: 0; padding-left: 20px; color: var(--muted); }
+    .features li { margin-bottom: 6px; }
+    .features li b { color: var(--text); font-weight: 600; }
+    .facts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 80px; }
+    .fact { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
+    .fact .ico { font-size: 26px; line-height: 1; }
+    .fact b { display: block; margin: 10px 0 4px; font: 700 18px var(--serif); color: #fff4d6; }
+    .fact span { color: var(--muted); font-size: 15px; }
+
+    /* partidas enteras */
+    .runs { background: var(--bg-2); }
+    .runs .player { margin-top: 28px; }
+    .runs .player video { background: #000; }
+    .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    .tabs button { background: var(--panel); color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 8px 16px; font: 600 15px var(--sans); cursor: pointer; }
+    .tabs button[aria-pressed="true"] { background: var(--gold); color: var(--ink); border-color: var(--gold); }
+    .runs .note { color: var(--muted); font-size: 14px; margin-top: 12px; }
+
+    /* el final */
+    .final { text-align: center; padding: 110px 0 70px; background: radial-gradient(ellipse at 50% 120%, #1d3a24 0%, transparent 65%), var(--bg); }
+    .final .icon { width: 132px; height: 132px; margin: 0 auto 18px; filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.5)); }
+    .final .lead { margin: 0 auto 30px; }
+    .final .abe { margin-top: 40px; color: var(--muted); font-size: 15px; }
+    details { max-width: 520px; margin: 26px auto 0; text-align: left; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); padding: 12px 16px; }
+    summary { cursor: pointer; color: var(--muted); font-size: 15px; }
+    form { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    input { flex: 1 1 200px; min-width: 0; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font: inherit; }
+    form button { padding: 10px 18px; border-radius: 8px; border: 0; background: var(--gold); color: var(--ink); font: 700 16px var(--sans); cursor: pointer; }
+    .error { color: var(--bad); font-size: 15px; margin: 8px 0 0; min-height: 1.4em; }
+    footer { border-top: 1px solid var(--line); padding: 26px 0 34px; color: var(--muted); font-size: 14px; }
+    footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; justify-content: space-between; }
+
+    /* la captura grande, al tocar una */
+    dialog { padding: 0; border: 0; background: transparent; max-width: min(1400px, 96vw); }
+    dialog::backdrop { background: rgba(4, 9, 16, 0.88); }
+    dialog img { border-radius: 10px; width: 100%; height: auto; }
+    dialog form { position: absolute; top: 8px; right: 8px; margin: 0; }
+    dialog form button { background: rgba(11, 22, 38, 0.85); color: #fff; font-size: 22px; width: 42px; height: 42px; padding: 0; border-radius: 50%; }
+
+    .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.7s, transform 0.7s; }
+    .reveal.seen { opacity: 1; transform: none; }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .reveal { opacity: 1; transform: none; transition: none; }
+      .scroll { animation: none; }
+    }
+
+    @media (max-width: 900px) {
+      .story .grid, .features .row { grid-template-columns: 1fr; gap: 28px; }
+      .features .row:nth-of-type(even) .shot { order: 0; }
+      .features .row { margin-top: 56px; }
+      .clubs, .facts { grid-template-columns: 1fr 1fr; }
+      .bar nav { display: none; }
+      .bar .lang { margin-left: auto; }
+    }
+    @media (max-width: 560px) {
+      section { padding: 64px 0; }
+      .hero picture img { object-position: 8% 60%; }
+      .hero .content { padding-top: 84px; }
+      .btn { font-size: 21px; padding: 14px 30px; }
+      .bar .btn { display: none; }
+      .story .pics .shot:nth-child(2) { margin-left: 0; }
+      .clubs { grid-template-columns: 1fr 1fr; gap: 10px; }
+      .facts { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="bar" id="bar">
+    <div class="wrap">
+      <a class="brand" href="#top"><img src="icono.png" alt="">Golf Knight</a>
+      <nav>
+        <a href="#historia" data-es="La historia" data-en="The story">La historia</a>
+        <a href="#accion" data-es="Cómo se juega" data-en="How it plays">Cómo se juega</a>
+        <a href="#partidas" data-es="Videos" data-en="Videos">Videos</a>
+      </nav>
+      <div class="lang"></div>
+      <a class="btn" data-play href="itch/" data-es="Jugar" data-en="Play">Jugar</a>
+    </div>
+  </header>
+
+  <main id="top">
+    <header class="hero">
+      <picture>
+        <source media="(max-aspect-ratio: 4/5)" srcset="img/portada-alta.webp">
+        <source media="(max-width: 1300px)" srcset="img/portada-1280.webp">
+        <img src="img/portada-1920.webp" alt="" fetchpriority="high">
+      </picture>
+      <div class="content">
+        <h1 class="title">GOLF KNIGHT</h1>
+        <p class="tag" data-es="Golf contra la horda" data-en="Golf vs. the horde">Golf contra la horda</p>
+      </div>
+      <div class="cta">
+        <a class="btn" data-play href="itch/"><svg viewBox="0 0 10 12" aria-hidden="true"><path d="M0 0 L10 6 L0 12 Z" fill="currentColor"/></svg><span data-es="Jugar" data-en="Play">Jugar</span></a>
+        <small data-es="Demo gratis en el navegador · Juego completo para Windows" data-en="Free demo in your browser · Full game for Windows">Demo gratis en el navegador · Juego completo para Windows</small>
+        <a class="scroll" href="#historia" aria-label="Más abajo" data-es-label="Más abajo" data-en-label="Scroll down">⌄</a>
+      </div>
+    </header>
+
+    <section class="story" id="historia">
+      <div class="wrap grid">
+        <div class="reveal">
+          <span class="eyebrow" data-es="Un isekai de golf" data-en="An isekai golf roguelite">Un isekai de golf</span>
+          <h2 data-es="La profecía pedía un gran guerrero. Llegaste vos, con los palos de golf." data-en="The prophecy called for a great warrior. You showed up, with your golf clubs.">La profecía pedía un gran guerrero. Llegaste vos, con los palos de golf.</h2>
+          <p data-es="Fuiste a una feria medieval disfrazado de caballero. Los palos de golf seguían en el baúl. Te pisó un auto, y un mago te invocó a otro mundo: la profecía pedía armadura reluciente y un arma de precisión letal."
+             data-en="You went to a medieval fair dressed as a knight. Your golf clubs were still in the trunk. Then a car hit you, and a wizard summoned you to another world: the prophecy called for shining armor and a weapon of deadly precision.">Fuiste a una feria medieval disfrazado de caballero. Los palos de golf seguían en el baúl. Te pisó un auto, y un mago te invocó a otro mundo: la profecía pedía armadura reluciente y un arma de precisión letal.</p>
+          <p class="punch" data-es="Le tocaron los palos de golf." data-en="He got the golf clubs.">Le tocaron los palos de golf.</p>
+        </div>
+        <div class="pics reveal">
+          <button type="button" class="shot" data-zoom><img data-img="cine-feria" src="img/es/cine-feria.webp" alt="La feria medieval: el caballero disfrazado entre los puestos" data-es-alt="La feria medieval: el caballero disfrazado entre los puestos" data-en-alt="The medieval fair: the knight in costume among the stalls" loading="lazy"></button>
+          <button type="button" class="shot" data-zoom><img data-img="cine-mago" src="img/es/cine-mago.webp" alt="El círculo de invocación: el mago y el caballero recién llegado" data-es-alt="El círculo de invocación: el mago y el caballero recién llegado" data-en-alt="The summoning circle: the wizard and the newly arrived knight" loading="lazy"></button>
+        </div>
+      </div>
+    </section>
+
+    <section class="action" id="accion">
+      <div class="wrap">
+        <div class="head reveal">
+          <span class="eyebrow" data-es="Cómo se juega" data-en="How it plays">Cómo se juega</span>
+          <h2 data-es="Defendé la puerta de Valdehoyo con tu swing" data-en="Defend the gate of Valdehoyo with your swing">Defendé la puerta de Valdehoyo con tu swing</h2>
+          <p class="lead" data-es="Las hordas vienen desde el fondo de la cancha. Elegí el palo, apuntá, cargá el golpe y clavá el momento justo."
+             data-en="Hordes march at you from the end of the course. Pick the club, aim, charge the swing and nail the timing.">Las hordas vienen desde el fondo de la cancha. Elegí el palo, apuntá, cargá el golpe y clavá el momento justo.</p>
+        </div>
+        <div class="shot loop reveal">
+          <video src="media/hidra.webm" poster="media/hidra.webp" autoplay muted loop playsinline preload="metadata" aria-label="La pelea con la hidra" data-es-label="La pelea con la hidra" data-en-label="The fight with the hydra"></video>
+          <span class="badge" data-es="Jefe: la hidra" data-en="Boss: the hydra">Jefe: la hidra</span>
+        </div>
+        <div class="clubs reveal">
+          <div class="club"><b>Driver</b><span data-es="Rasante: pega más fuerte de lejos" data-en="Low and flat: hits harder from afar">Rasante: pega más fuerte de lejos</span></div>
+          <div class="club"><b data-es="Hierro" data-en="Iron">Hierro</b><span data-es="En arco bajo, cae donde apuntás" data-en="A low arc that lands where you aim">En arco bajo, cae donde apuntás</span></div>
+          <div class="club"><b>Wedge</b><span data-es="Un globo que pega en toda el área" data-en="A lob that hits the whole area">Un globo que pega en toda el área</span></div>
+          <div class="club"><b>Putter</b><span data-es="Rodando: el que más pega, de cerca" data-en="Rolling: the hardest hit, up close">Rodando: el que más pega, de cerca</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="features">
+      <div class="wrap">
+        <div class="row reveal">
+          <button type="button" class="shot" data-zoom><img data-img="1-oleada" src="img/es/1-oleada.webp" alt="Una oleada llegando, con los poderes arriba de cada enemigo" data-es-alt="Una oleada llegando, con los poderes arriba de cada enemigo" data-en-alt="A wave coming in, with each enemy's power above its head" loading="lazy"></button>
+          <div>
+            <h3 data-es="Cada enemigo trae un poder" data-en="Every enemy brings a power">Cada enemigo trae un poder</h3>
+            <p data-es="Y cada poder pide otra respuesta:" data-en="And every power asks for a different answer:">Y cada poder pide otra respuesta:</p>
+            <ul>
+              <li data-es="escudos que hay que pegar por detrás," data-en="shields you have to hit from behind,">escudos que hay que pegar por detrás,</li>
+              <li data-es="blindaje que solo atraviesa el golpe perfecto," data-en="armor that only a perfect swing gets through,">blindaje que solo atraviesa el golpe perfecto,</li>
+              <li data-es="fantasmas, escurridizos, los que se curan, intocables." data-en="ghosts, dodgers, healers, untouchables.">fantasmas, escurridizos, los que se curan, intocables.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="row reveal">
+          <button type="button" class="shot" data-zoom><img data-img="2-rayo-y-fuego" src="img/es/2-rayo-y-fuego.webp" alt="El rayo saltando entre un grupo prendido fuego" data-es-alt="El rayo saltando entre un grupo prendido fuego" data-en-alt="Lightning jumping through a group on fire" loading="lazy"></button>
+          <div>
+            <h3 data-es="Armá tu caballero entre oleadas" data-en="Build your knight between waves">Armá tu caballero entre oleadas</h3>
+            <p data-es="Tiros de fuego, hielo, rayo y viento, guantes y maestrías que mezclan elementos. El fuego explota, el viento los junta, el rayo salta."
+               data-en="Fire, ice, lightning and wind shots, gloves, and masteries that mix elements. The fire spreads by exploding, the wind gathers them up, the lightning jumps.">Tiros de fuego, hielo, rayo y viento, guantes y maestrías que mezclan elementos. El fuego explota, el viento los junta, el rayo salta.</p>
+          </div>
+        </div>
+        <div class="row reveal">
+          <button type="button" class="shot" data-zoom><img data-img="4-cartas" src="img/es/4-cartas.webp" alt="Elegir una carta entre oleadas" data-es-alt="Elegir una carta entre oleadas" data-en-alt="Picking a card between waves" loading="lazy"></button>
+          <div>
+            <h3 data-es="Una carta después de cada oleada" data-en="A card after every wave">Una carta después de cada oleada</h3>
+            <p data-es="Habilidades que se tiran con Q, W, E y R, mejoras que funcionan solas, y maestrías para el que ya domina un elemento. Cada partida, otro caballero."
+               data-en="Abilities you cast with Q, W, E and R, upgrades that just work, and masteries for when you've mastered an element. Every run, a different knight.">Habilidades que se tiran con Q, W, E y R, mejoras que funcionan solas, y maestrías para el que ya domina un elemento. Cada partida, otro caballero.</p>
+          </div>
+        </div>
+        <div class="row reveal">
+          <button type="button" class="shot" data-zoom><img data-img="3-jefe" src="img/es/3-jefe.webp" alt="La última oleada, con el jefe y su escolta" data-es-alt="La última oleada, con el jefe y su escolta" data-en-alt="The last wave, with the boss and its escort" loading="lazy"></button>
+          <div>
+            <h3 data-es="Tres escenarios y un jefe" data-en="Three scenarios and a boss">Tres escenarios y un jefe</h3>
+            <p data-es="Con otros poderes de enemigos en cada partida. Al final te espera un jefe, y cada jefe se pelea distinto."
+               data-en="With a different set of enemy powers every run. A boss waits at the end, and every boss fights differently.">Con otros poderes de enemigos en cada partida. Al final te espera un jefe, y cada jefe se pelea distinto.</p>
+          </div>
+        </div>
+        <div class="row reveal">
+          <button type="button" class="shot" data-zoom><img data-img="5-de-a-dos" src="img/es/5-de-a-dos.webp" alt="El caballero y Abe en el mismo momento, cada uno en su pantalla" data-es-alt="El caballero y Abe en el mismo momento, cada uno en su pantalla" data-en-alt="The knight and Abe at the same moment, each on their own screen" loading="lazy"></button>
+          <div>
+            <h3 data-es="De a dos, con un enlace" data-en="Play with a friend, from a link">De a dos, con un enlace</h3>
+            <p data-es="Pasale un enlace a un amigo y entra como Abe, el mago, desde el navegador, sin instalar nada. Abe marca enemigos para tu próximo golpe, los junta con remolinos, los silencia y pone trampas."
+               data-en="Send a link and your friend joins as Abe, the wizard, from their browser, no install needed. Abe marks enemies for your next hit, gathers them with whirlwinds, silences them and sets traps.">Pasale un enlace a un amigo y entra como Abe, el mago, desde el navegador, sin instalar nada. Abe marca enemigos para tu próximo golpe, los junta con remolinos, los silencia y pone trampas.</p>
+          </div>
+        </div>
+
+        <div class="facts reveal">
+          <div class="fact"><div class="ico" aria-hidden="true">🌳</div><b data-es="Árbol de dificultad" data-en="Difficulty tree">Árbol de dificultad</b><span data-es="Cada partida ganada destraba un punto para hacer la próxima más difícil, a tu manera." data-en="Every win unlocks a point to make the next run harder, your way.">Cada partida ganada destraba un punto para hacer la próxima más difícil, a tu manera.</span></div>
+          <div class="fact"><div class="ico" aria-hidden="true">🖱️</div><b data-es="Mouse y teclado" data-en="Mouse and keyboard">Mouse y teclado</b><span data-es="Apuntás con el mouse, cargás manteniendo el click y soltás en el momento justo." data-en="Aim with the mouse, hold the click to charge, release at the right moment.">Apuntás con el mouse, cargás manteniendo el click y soltás en el momento justo.</span></div>
+          <div class="fact"><div class="ico" aria-hidden="true">🌐</div><b data-es="Siete idiomas" data-en="Seven languages">Siete idiomas</b><span data-es="Español, inglés, chino, coreano, japonés, portugués y ruso. Las voces, en español e inglés." data-en="English, Spanish, Chinese, Korean, Japanese, Portuguese and Russian. Voices in English and Spanish.">Español, inglés, chino, coreano, japonés, portugués y ruso. Las voces, en español e inglés.</span></div>
+          <div class="fact"><div class="ico" aria-hidden="true">🎮</div><b data-es="Demo gratis" data-en="Free demo">Demo gratis</b><span data-es="El juego base en el navegador. El completo, para Windows, suma el árbol, más poderes y más cartas." data-en="The base game in your browser. The full game, for Windows, adds the tree, more powers and more cards.">El juego base en el navegador. El completo, para Windows, suma el árbol, más poderes y más cartas.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="runs" id="partidas">
+      <div class="wrap">
+        <div class="reveal">
+          <span class="eyebrow" data-es="Videos" data-en="Videos">Videos</span>
+          <h2 data-es="Partidas enteras, sin cortes" data-en="Full runs, uncut">Partidas enteras, sin cortes</h2>
+        </div>
+        <div class="player reveal">
+          <div class="shot"><video id="run" controls preload="none" playsinline poster="videos/partida.jpg" src="videos/partida.webm"></video></div>
+          <div class="tabs" id="tabs">
+            <button type="button" data-run="partida" aria-pressed="true" data-es="Desde el principio" data-en="From the start">Desde el principio</button>
+            <button type="button" data-run="oleada-9" aria-pressed="false" data-es="Oleada 9" data-en="Wave 9">Oleada 9</button>
+            <button type="button" data-run="jefe-minotauro" aria-pressed="false" data-es="Jefe: el minotauro" data-en="Boss: the minotaur">Jefe: el minotauro</button>
+            <button type="button" data-run="jefe-hidra" aria-pressed="false" data-es="Jefe: la hidra" data-en="Boss: the hydra">Jefe: la hidra</button>
+          </div>
+          <p class="note" data-es="Con sonido. El juego en estos videos está en español." data-en="With sound. The game in these videos is in Spanish.">Con sonido. El juego en estos videos está en español.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="final">
+      <div class="wrap reveal">
+        <img class="icon" src="icono.png" alt="">
+        <h2 data-es="La horda ya viene" data-en="The horde is coming">La horda ya viene</h2>
+        <p class="lead" data-es="Probá la demo gratis en el navegador. Si te gusta, el juego completo es para Windows." data-en="Try the free demo in your browser. If you like it, the full game is for Windows.">Probá la demo gratis en el navegador. Si te gusta, el juego completo es para Windows.</p>
+        <a class="btn" data-play href="itch/"><svg viewBox="0 0 10 12" aria-hidden="true"><path d="M0 0 L10 6 L0 12 Z" fill="currentColor"/></svg><span data-es="Jugar" data-en="Play">Jugar</span></a>
+        <p class="abe" data-es="¿Te invitaron a ser Abe, el mago? Abrí el enlace que te pasaron: te trae directo a la partida." data-en="Invited to play as Abe, the wizard? Open the link you got: it takes you straight into the game.">¿Te invitaron a ser Abe, el mago? Abrí el enlace que te pasaron: te trae directo a la partida.</p>
+        <details>
+          <summary data-es="¿Ayudás a probarlo? Entrá con la contraseña" data-en="Helping test it? Enter with the password">¿Ayudás a probarlo? Entrá con la contraseña</summary>
+          <form id="friends">
+            <input id="password" type="password" autocomplete="current-password" aria-label="Contraseña" data-es-label="Contraseña" data-en-label="Password">
+            <button type="submit" data-es="Entrar" data-en="Enter">Entrar</button>
+          </form>
+          <p class="error" id="error" role="alert"></p>
+        </details>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <span>Golf Knight · Forja de Almas</span>
+      <a href="https://forja-de-almas.itch.io/golf-knight">itch.io</a>
+    </div>
+  </footer>
+
+  <dialog id="zoom">
+    <form method="dialog"><button aria-label="Cerrar" data-es-label="Cerrar" data-en-label="Close">×</button></form>
+    <img alt="">
+  </dialog>
+
+  <script src="textos.js"></script>
+  <script src="idioma.js"></script>
+  <script>
+    /**
+     * Adónde lleva «Jugar»: por ahora, directo a itch. Cuando haya otra tienda (Steam), a play/, la página
+     * que dice dónde se juega (site/play/).
+     */
+    const PLAY_URL = 'https://forja-de-almas.itch.io/golf-knight';
+    for (const a of document.querySelectorAll('[data-play]')) a.href = PLAY_URL;
+
+    // el idioma lo maneja idioma.js (gkLang); acá, lo que cambia aparte de los textos
+    const TEXTS = { wrong: ['Esa no es la contraseña.', "That's not the password."], offline: ['No se pudo comprobar: probá de nuevo.', "Couldn't check it: try again."] };
+    function onLang(lang) {
+      // las capturas tienen el juego en español o en inglés (los otros idiomas, por ahora, las inglesas)
+      for (const img of document.querySelectorAll('img[data-img]')) img.src = `img/${lang === 'es' ? 'es' : 'en'}/${img.dataset.img}.webp`;
+      document.getElementById('error').textContent = '';
+    }
+    gkLang.onChange(onLang);
+    onLang(gkLang.lang);
+
+    // la barra se pone sólida al dejar atrás la portada
+    const bar = document.getElementById('bar');
+    const onScroll = () => bar.classList.toggle('solid', scrollY > innerHeight * 0.6);
+    addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    // lo que aparece al bajar
+    const seen = new IntersectionObserver((entries) => {
+      for (const e of entries) if (e.isIntersecting) { e.target.classList.add('seen'); seen.unobserve(e.target); }
+    }, { threshold: 0.15 });
+    for (const el of document.querySelectorAll('.reveal')) seen.observe(el);
+
+    // las capturas, en grande
+    const zoom = document.getElementById('zoom');
+    for (const b of document.querySelectorAll('[data-zoom]')) {
+      b.addEventListener('click', () => {
+        const img = b.querySelector('img');
+        zoom.querySelector('img').src = img.src;
+        zoom.querySelector('img').alt = img.alt;
+        zoom.showModal();
+      });
+    }
+    zoom.addEventListener('click', (e) => { if (e.target === zoom) zoom.close(); });
+
+    // las partidas enteras (videos/, de tools/videos.mjs)
+    const run = document.getElementById('run');
+    for (const b of document.querySelectorAll('[data-run]')) {
+      b.addEventListener('click', () => {
+        for (const o of document.querySelectorAll('[data-run]')) o.setAttribute('aria-pressed', String(o === b));
+        run.poster = `videos/${b.dataset.run}.jpg`;
+        run.src = `videos/${b.dataset.run}.webm`;
+        run.play().catch(() => { /* sin permiso para arrancar solo: queda el botón */ });
+      });
+    }
+
+    // La completa, para los que ayudan a probar: vive en una carpeta que sale de la contraseña (la misma
+    // cuenta que hace tools/deploy.mjs). La contraseña no está en ningún lado de la página.
+    async function folderFor(password) {
+      const clean = password.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`golfknight:${clean}`));
+      return `j${[...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, '0')).join('').slice(0, 16)}`;
+    }
+    async function exists(folder) {
+      const res = await fetch(`${folder}/index.html`, { method: 'HEAD', cache: 'no-store' });
+      return res.ok;
+    }
+    const KEY = 'gk.amigos';
+    // el que ya entró una vez va directo. Lo que venga en el enlace (?click=uno) pasa a la completa
+    (async () => {
+      let folder = null;
+      try { folder = localStorage.getItem(KEY); } catch { /* sin almacenamiento */ }
+      if (folder && /^j[0-9a-f]{16}$/.test(folder) && await exists(folder).catch(() => false)) location.replace(`${folder}/${location.search}`);
+    })();
+    document.getElementById('friends').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const error = document.getElementById('error');
+      error.textContent = '';
+      const password = document.getElementById('password').value;
+      if (!password.trim()) return;
+      try {
+        const folder = await folderFor(password);
+        if (!await exists(folder)) { error.textContent = gkLang.t(...TEXTS.wrong); return; }
+        try { localStorage.setItem(KEY, folder); } catch { /* sin almacenamiento */ }
+        location.href = `${folder}/${location.search}`;
+      } catch {
+        error.textContent = gkLang.t(...TEXTS.offline);
+      }
+    });
+  </script>
+</body>
+</html>

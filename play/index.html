@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dónde jugar · Golf Knight</title>
+  <meta name="description" content="Dónde jugar Golf Knight: la demo gratis en el navegador y el juego completo para Windows.">
+  <link rel="icon" href="../icono.png">
+  <!--
+    golf-knight.com/play/ (20/10, Leandro: «en una pagina de play decir donde se puede jugar, itchiio, steam»):
+    una tarjeta por tienda. El juego no se hospeda acá: se juega en las tiendas. Cuando esté la página de
+    Steam (u otra), se suma su tarjeta.
+  -->
+  <style>
+    :root { --bg: #0b1626; --panel: #13233a; --text: #f3ead6; --muted: #b9c2cf; --gold: #ffd66b; --gold-dark: #c98a1e; --line: rgba(255, 214, 107, 0.28); }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.55 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+    .banner { display: block; width: 100%; aspect-ratio: 1920 / 600; object-fit: cover; background: #2d6b2f; }
+    main { max-width: 680px; margin: 0 auto; padding: 28px 16px 48px; }
+    /* el menú de idioma (../idioma.js) */
+    .lang { float: right; position: relative; margin-top: 2px; }
+    .lang-toggle { display: flex; align-items: center; gap: 6px; background: none; border: 1px solid transparent; color: var(--muted); font: 600 14px system-ui, sans-serif; cursor: pointer; padding: 5px 8px; border-radius: 8px; }
+    .lang-toggle:hover, .lang-toggle[aria-expanded="true"] { color: var(--gold); border-color: var(--line); }
+    .lang-toggle svg { width: 15px; height: 15px; }
+    .lang-list { position: absolute; right: 0; top: calc(100% + 6px); z-index: 5; margin: 0; padding: 6px; list-style: none; min-width: 190px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); }
+    .lang-list li { padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 15px; outline: none; }
+    .lang-list li:hover, .lang-list li:focus { background: rgba(255, 214, 107, 0.12); }
+    .lang-list li[aria-selected="true"] { color: var(--gold); }
+    h1 { font: 700 clamp(26px, 5vw, 36px)/1.2 Georgia, serif; color: var(--gold); margin: 0 0 18px; }
+    h2 { font: 700 22px/1.2 Georgia, serif; margin: 0 0 6px; }
+    p { margin: 0 0 14px; }
+    .store { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); padding: 18px 20px; margin-bottom: 16px; }
+    .play { display: inline-block; padding: 12px 22px; border-radius: 10px; background: linear-gradient(180deg, #ffe9a0, var(--gold) 55%, var(--gold-dark));
+      color: #3b1f05; font: 700 18px Georgia, serif; text-decoration: none; box-shadow: 0 3px 0 #6b3f0c, 0 6px 18px rgba(0, 0, 0, 0.35); }
+    .play:hover { filter: brightness(1.06); }
+    .back { color: var(--muted); font-size: 15px; }
+  </style>
+</head>
+<body>
+  <img class="banner" id="banner" src="../banner-es.png" alt="Golf Knight: el caballero pega con el palo de golf mientras la horda viene por el campo" data-es-alt="Golf Knight: el caballero pega con el palo de golf mientras la horda viene por el campo" data-en-alt="Golf Knight: the knight swings his golf club while the horde comes across the field">
+  <main>
+    <div class="lang"></div>
+    <h1 data-es="Dónde jugar" data-en="Where to play">Dónde jugar</h1>
+    <section class="store">
+      <h2>itch.io</h2>
+      <p data-es="La demo, gratis en el navegador, y el juego completo para Windows."
+         data-en="The free demo in your browser, and the full game for Windows.">La demo, gratis en el navegador, y el juego completo para Windows.</p>
+      <a class="play" href="https://forja-de-almas.itch.io/golf-knight" data-es="Jugar en itch.io" data-en="Play on itch.io">Jugar en itch.io</a>
+    </section>
+    <a class="back" href="../" data-es="← Golf Knight" data-en="← Golf Knight">← Golf Knight</a>
+  </main>
+  <script src="../textos.js"></script>
+  <script src="../idioma.js"></script>
+  <script>
+    // el banner tiene el título en español o en inglés (los otros idiomas, el inglés)
+    const banner = (lang) => { document.getElementById('banner').src = `../banner-${lang === 'es' ? 'es' : 'en'}.png`; };
+    gkLang.onChange(banner);
+    banner(gkLang.lang);
+  </script>
+</body>
+</html>
