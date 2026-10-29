@@ -1,0 +1,1 @@
+import{t as e}from"./i18n-DPmPuELo.js";import{n as t,t as n}from"./pelea-CKBVJb8A.js";var r=[{id:`amalgama.cola`,name:e(`La Amalgama`,`The Amalgam`),blurb:`Lleva un poder por vez (la cola de 3 sobre la cabeza); cada golpe que le entra le saca el símbolo y pasa al siguiente. Tira esquirlas a la puerta.`,budget:n,start:t}];export{r as BOSSES};

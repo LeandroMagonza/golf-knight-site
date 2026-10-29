@@ -1,0 +1,47 @@
+[
+  {
+    "name": "partida",
+    "file": "partida.webm",
+    "poster": "partida.jpg",
+    "title": "Una partida desde el principio",
+    "en": "A run from the start",
+    "seconds": 150,
+    "date": "2026-10-19"
+  },
+  {
+    "name": "oleada-6",
+    "file": "oleada-6.webm",
+    "poster": "oleada-6.jpg",
+    "title": "Oleada 6",
+    "en": "Wave 6",
+    "seconds": 120,
+    "date": "2026-10-19"
+  },
+  {
+    "name": "oleada-9",
+    "file": "oleada-9.webm",
+    "poster": "oleada-9.jpg",
+    "title": "Oleada 9",
+    "en": "Wave 9",
+    "seconds": 120,
+    "date": "2026-10-19"
+  },
+  {
+    "name": "jefe-minotauro",
+    "file": "jefe-minotauro.webm",
+    "poster": "jefe-minotauro.jpg",
+    "title": "Jefe: el minotauro",
+    "en": "Boss: the minotaur",
+    "seconds": 92,
+    "date": "2026-10-19"
+  },
+  {
+    "name": "jefe-hidra",
+    "file": "jefe-hidra.webm",
+    "poster": "jefe-hidra.jpg",
+    "title": "Jefe: la hidra",
+    "en": "Boss: the hydra",
+    "seconds": 120,
+    "date": "2026-10-19"
+  }
+]
